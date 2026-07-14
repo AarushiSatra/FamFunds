@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "874671329578",
+    "project_id": "famfunds-1c6e4",
+    "storage_bucket": "famfunds-1c6e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:874671329578:android:9ca22e6a68afdd66794e53",
+        "android_client_info": {
+          "package_name": "com.example.finfamily"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOLKv1bd0hbSDH4qIiq1ZcoYldlpa1j9g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
