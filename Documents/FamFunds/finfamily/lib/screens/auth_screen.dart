@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
-import '../routes/app_routes.dart';
 import '../services/auth_service.dart';
 import 'auth/email_verification_screen.dart';
 import 'auth/mfa_enroll_screen.dart';
