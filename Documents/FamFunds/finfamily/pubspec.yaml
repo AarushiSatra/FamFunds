@@ -33,6 +33,10 @@ dependencies:
   http: ^1.2.2
   url_launcher: ^6.3.0
 
+  # Gemini AI & Storage
+  google_generative_ai: ^0.4.0
+  shared_preferences: ^2.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

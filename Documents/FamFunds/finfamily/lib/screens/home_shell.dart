@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 import 'family_dashboard_screen.dart';
 import 'loan_advisor_screen.dart';
 import 'investment_screen.dart';
