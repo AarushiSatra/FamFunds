@@ -27,6 +27,7 @@ class FamilyMember {
 
 class LinkedAccount {
   final String accountId;
+  final String familyId;
   final String ownerUid;
   final String bankName;
   final String accountType; // savings | current
@@ -35,6 +36,7 @@ class LinkedAccount {
 
   LinkedAccount({
     required this.accountId,
+    required this.familyId,
     required this.ownerUid,
     required this.bankName,
     required this.accountType,
@@ -45,6 +47,7 @@ class LinkedAccount {
   factory LinkedAccount.fromMap(String id, Map<String, dynamic> map) {
     return LinkedAccount(
       accountId: id,
+      familyId: map['familyId'] ?? '',
       ownerUid: map['uid'] ?? '',
       bankName: map['bankName'] ?? '',
       accountType: map['accountType'] ?? 'savings',
@@ -93,17 +96,47 @@ class LoanOption {
 }
 
 class InvestmentSuggestion {
+  final String type;
   final String title;
   final String description;
-  final String riskLevel; // low | medium | high
+  final String riskLevel;
   final String aiRationale;
+  final Map<String, dynamic> facts;
+  final String? actionUrl;
+  final String? actionLabel;
 
   InvestmentSuggestion({
+    required this.type,
     required this.title,
     required this.description,
     required this.riskLevel,
     required this.aiRationale,
+    required this.facts,
+    this.actionUrl,
+    this.actionLabel,
   });
+}
+
+/// Overall financial snapshot shown at the top of the Invest tab.
+class FinancialSummary {
+  final double combinedBalance;
+  final double avgMonthlyExpense;
+  final double avgMonthlySurplus;
+  final double coverageMonths;
+
+  FinancialSummary({
+    required this.combinedBalance,
+    required this.avgMonthlyExpense,
+    required this.avgMonthlySurplus,
+    required this.coverageMonths,
+  });
+}
+
+class InvestmentResult {
+  final FinancialSummary summary;
+  final List<InvestmentSuggestion> suggestions;
+
+  InvestmentResult({required this.summary, required this.suggestions});
 }
 
 class ChatMessage {
