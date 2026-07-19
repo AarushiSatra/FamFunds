@@ -34,126 +34,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       _isLoading = false;
       if (_messages.isEmpty) {
         _messages.add(_Msg(
-          text: "Hi! I'm your FinFamily Assistant. Ask me anything about "
-              "savings, loans, or investing — I'll explain it simply.",
+          text: "Hi! I'm FamFunds AI, your personal finance assistant. Ask me anything about budgeting, saving money, expense tracking, financial planning, investments, insurance, taxes, banking, or financial literacy.",
           isUser: false,
         ));
       }
     });
-  }
-
-  Future<void> _showApiKeyDialog() async {
-    final hasKey = await GeminiService.instance.hasKey();
-    final keyController = TextEditingController();
-    if (hasKey) {
-      final key = await GeminiService.instance.getApiKey();
-      keyController.text = key ?? '';
-    }
-
-    bool obscureText = true;
-
-    if (!mounted) return;
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: Text(hasKey ? 'Gemini API Key Connected' : 'Connect Gemini API Key'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Unlock advanced free-form AI questions and custom answers.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: keyController,
-                obscureText: obscureText,
-                decoration: InputDecoration(
-                  hintText: 'AIzaSy...',
-                  labelText: 'Gemini API Key',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscureText
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      color: AppColors.textSecondary,
-                    ),
-                    onPressed: () {
-                      setStateDialog(() {
-                        obscureText = !obscureText;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Get a free Gemini API Key'),
-                      content: const Text(
-                        '1. Visit Google AI Studio (aistudio.google.com)\n'
-                        '2. Sign in with your Google account.\n'
-                        '3. Click "Get API key" and then "Create API key".\n'
-                        '4. Copy the key and paste it here to unlock your assistant.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Got it'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: const Text(
-                  'How to get a free API Key?',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            if (hasKey)
-              TextButton(
-                onPressed: () async {
-                  await GeminiService.instance.removeApiKey();
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                  _checkApiKey();
-                },
-                child: const Text('Disconnect', style: TextStyle(color: AppColors.accentRed)),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final text = keyController.text.trim();
-                if (text.isNotEmpty) {
-                  await GeminiService.instance.saveApiKey(text);
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                  _checkApiKey();
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _send([String? customText]) async {
@@ -227,22 +112,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Assistant'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.vpn_key_rounded,
-              color: _hasKey ? AppColors.primary : AppColors.textSecondary.withOpacity(0.5),
-            ),
-            tooltip: _hasKey ? 'Gemini Connected' : 'Connect Gemini API Key',
-            onPressed: _showApiKeyDialog,
-          ),
-        ],
+        title: const Text('FamFunds AI'),
       ),
       body: Column(
         children: [
-          if (!_hasKey)
-            _ChatInfoBanner(onConnect: _showApiKeyDialog),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -271,48 +144,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   }
 }
 
-class _ChatInfoBanner extends StatelessWidget {
-  final VoidCallback onConnect;
-  const _ChatInfoBanner({required this.onConnect});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.15)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 18),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Running locally offline. Connect Gemini API Key for free-form queries.',
-              style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w500),
-            ),
-          ),
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: onConnect,
-            child: const Text(
-              'Connect',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// API Connection Banner removed to conform to FamFunds AI requirements
 
 class _Msg {
   final String text;

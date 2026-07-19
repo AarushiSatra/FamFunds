@@ -38,7 +38,18 @@ class GeminiService {
     }
 
     const systemPrompt = '''
-You are the FinFamily Assistant, a smart, friendly, and helpful financial literacy and planning assistant for the Sharma family.
+You are FamFunds AI, a personal finance assistant.
+Your purpose is to help users with:
+- Budgeting
+- Saving money
+- Expense tracking
+- Financial planning
+- Investments (general educational information only)
+- Insurance
+- Taxes (general guidance)
+- Banking
+- Financial literacy
+
 Here is the household financial context you have access to:
 - Household Name: The Sharma Family
 - Combined Balance: ₹5,93,600
@@ -55,6 +66,12 @@ Here is the household financial context you have access to:
   3. Explore equity mutual funds (Risk: Medium) once emergency fund is built.
 
 Provide helpful advice, explain financial concepts (savings, loans, investing, compound interest) in plain language, and make tailored suggestions using the family's financial context when appropriate. Be concise, polite, and professional. Use markdown formatting like bold text and lists where helpful to make your answers readable. Keep responses relatively short and direct.
+
+CRITICAL RULE:
+If a user asks a question unrelated to personal finance (such as programming, software engineering, sports, entertainment, history, homework, geography, general science, or general knowledge), you MUST politely decline and say exactly:
+"I’m the FamFunds financial assistant, so I can only help with personal finance, budgeting, savings, investments, and related topics. Please ask me a finance-related question."
+
+Do NOT answer unrelated questions under any circumstances. Do not ask the user for any API keys or give any options to configure API keys.
 ''';
 
     return GenerativeModel(
@@ -118,13 +135,47 @@ Provide helpful advice, explain financial concepts (savings, loans, investing, c
     // Artificial delay to simulate thinking (makes it feel premium!)
     await Future.delayed(const Duration(milliseconds: 900));
 
-    final query = text.toLowerCase();
+    final query = text.toLowerCase().trim();
 
-    if (query.contains('hi') || query.contains('hello') || query.contains('hey')) {
-      return "Hello! I'm your **FinFamily Assistant**. I have analyzed the Sharma Family's financial profile. Ask me anything about your balance, savings, loans, or investments!";
+    // 1. Check for greetings
+    final greetings = ['hi', 'hello', 'hey', 'greetings', 'yo', 'howdy'];
+    bool isGreeting = greetings.any((g) => query == g || query.startsWith('$g ') || query.contains(' $g'));
+
+    // 2. Check for unrelated topic triggers
+    final unrelatedKeywords = [
+      'code', 'python', 'javascript', 'c++', 'java', 'html', 'css', 'function', 'variable', 'database', 'api', 'sql', 'programming', 'compile', 'git', 'developer',
+      'sport', 'sports', 'football', 'cricket', 'soccer', 'tennis', 'basketball', 'olympics', 'match', 'game', 'score', 'ipl', 'athlete',
+      'movie', 'film', 'song', 'music', 'actor', 'actress', 'show', 'series', 'netflix', 'celebrity', 'singer',
+      'history', 'war', 'king', 'queen', 'ancient', 'empire', 'president', 'century', 'historical', 'dynasty',
+      'homework', 'physics', 'chemistry', 'biology', 'science', 'solve', 'equation', 'geography', 'capital of', 'weather', 'joke', 'recipe', 'cook', 'food', 'poem',
+    ];
+
+    // If query contains unrelated triggers, decline.
+    bool hasUnrelatedTrigger = unrelatedKeywords.any((keyword) => query.contains(keyword));
+
+    // 3. Check for related finance keywords
+    final financeKeywords = [
+      'rate', 'saving', 'salary', 'budget', 'breakdown', 'expense', 'spend', 'earn', 'cost', 'income',
+      'balance', 'total', 'money', 'account', 'linked', 'bank', 'hdfc', 'icici', 'sbi', 'sharma',
+      'sip', 'invest', 'mutual fund', 'stock', 'share', 'equity', 'smarter', 'grow', 'compound', 'interest', 'market', 'wealth',
+      'loan', 'compare', 'emi', 'interest', 'borrow', 'debt',
+      'emergency', 'buffer', 'safety',
+      'tax', 'taxes', 'gst', 'itr', 'deduction', 'income tax',
+      'insurance', 'policy', 'premium', 'term plan', 'health insurance', 'lic',
+      'finance', 'financial', 'budgeting', 'saving money', 'expense tracking', 'financial planning', 'banking', 'financial literacy'
+    ];
+
+    bool hasFinanceKeyword = financeKeywords.any((keyword) => query.contains(keyword));
+
+    if (hasUnrelatedTrigger || (!isGreeting && !hasFinanceKeyword)) {
+      return "I’m the FamFunds financial assistant, so I can only help with personal finance, budgeting, savings, investments, and related topics. Please ask me a finance-related question.";
     }
 
-    if (query.contains('rate') || query.contains('saving') || query.contains('salary') || query.contains('budget') || query.contains('breakdown')) {
+    if (isGreeting) {
+      return "Hello! I'm **FamFunds AI**, your personal finance assistant. I have analyzed the Sharma Family's financial profile. Ask me anything about your balance, savings, loans, or investments!";
+    }
+
+    if (query.contains('rate') || query.contains('saving') || query.contains('salary') || query.contains('budget') || query.contains('breakdown') || query.contains('expense') || query.contains('spend') || query.contains('cost') || query.contains('income')) {
       return "Of your **₹85,000 monthly family salary**, here is the breakdown:\n\n"
           "- **Fixed Expenses**: 45% (₹38,250) - Covers rent, bills, and EMIs.\n"
           "- **Savings**: 35% (₹29,750) - Directed to your linked bank accounts.\n"
@@ -132,7 +183,7 @@ Provide helpful advice, explain financial concepts (savings, loans, investing, c
           "Your **35% savings rate** is excellent! We recommend setting up an automatic transfer of **₹5,000/mo** to your mutual fund SIP.";
     }
 
-    if (query.contains('balance') || query.contains('total') || query.contains('how much money') || query.contains('account') || query.contains('linked')) {
+    if (query.contains('balance') || query.contains('total') || query.contains('money') || query.contains('account') || query.contains('linked') || query.contains('bank')) {
       return "The Sharma Family's combined balance across all linked accounts is **₹5,93,600**:\n\n"
           "- **HDFC Bank** (You): **₹1,84,200**\n"
           "- **ICICI Bank** (Spouse): **₹96,500**\n"
@@ -140,14 +191,14 @@ Provide helpful advice, explain financial concepts (savings, loans, investing, c
           "Your family balance is up **+8.2%** this month!";
     }
 
-    if (query.contains('sip') || query.contains('invest') || query.contains('mutual fund') || query.contains('stock') || query.contains('smarter')) {
+    if (query.contains('sip') || query.contains('invest') || query.contains('mutual fund') || query.contains('stock') || query.contains('share') || query.contains('equity') || query.contains('smarter')) {
       return "Here are our current **Investment Suggestions**:\n\n"
           "1. **Increase SIP by ₹5,000/mo** (Low Risk): You have a consistent ₹8,000+ monthly surplus. Compounding this in HDFC Mutual Fund will yield faster returns than leaving it idle.\n"
           "2. **Build a 6-month Emergency Fund** (Low Risk): Your current balance covers **2.3 months** of expenses. We recommend reaching **6 months** (approx. ₹2.3 Lakhs) before expanding high-risk equity positions.\n"
           "3. **Explore Equity Mutual Funds** (Medium Risk): Once emergency reserves are complete, diversify into mid-cap index funds.";
     }
 
-    if (query.contains('loan') || query.contains('compare') || query.contains('emi') || query.contains('interest')) {
+    if (query.contains('loan') || query.contains('compare') || query.contains('emi') || query.contains('interest') || query.contains('borrow') || query.contains('debt')) {
       return "We compared personal and gold loan options for you:\n\n"
           "- **SBI Gold Loan (Parent account)**: **9.8% p.a.** (EMI: ₹9,420/mo, Interest: ₹98,600) - *Recommended / Best Option*\n"
           "- **HDFC Bank Personal Loan**: **11.2% p.a.** (EMI: ₹9,850/mo, Interest: ₹1,18,200)\n"
@@ -168,12 +219,20 @@ Provide helpful advice, explain financial concepts (savings, loans, investing, c
           "Starting early is the key to building wealth!";
     }
 
-    return "I am your **FinFamily Assistant**. I specialize in your household budget, savings, and investments. \n\n"
+    if (query.contains('tax') || query.contains('gst') || query.contains('itr') || query.contains('insurance') || query.contains('policy') || query.contains('premium') || query.contains('finance') || query.contains('planning') || query.contains('literacy')) {
+      return "I am your **FamFunds AI** assistant. I specialize in personal finance, budgeting, savings, investments, insurance, and taxes. \n\n"
+          "While I am running in local offline mode, here are some questions you can ask me:\n"
+          "- *What is our total balance?*\n"
+          "- *How is our savings rate?*\n"
+          "- *Should we increase our SIP?*\n"
+          "- *Compare our loan options.*";
+    }
+
+    return "I am your **FamFunds AI** assistant. I specialize in your household budget, savings, and investments. \n\n"
         "Here are some questions you can ask me:\n"
         "- *What is our total balance?*\n"
         "- *How is our savings rate?*\n"
         "- *Should we increase our SIP?*\n"
-        "- *Compare our loan options.*\n\n"
-        "*(Optional: You can connect your Gemini API key in the top right corner to ask any general financial questions!)*";
+        "- *Compare our loan options.*";
   }
 }
