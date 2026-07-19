@@ -26,6 +26,15 @@ void main() {
       expect(response, contains('35% savings rate'));
     });
 
+    test('Answers dynamic custom salary query', () async {
+      final response = await GeminiService.instance.sendLocalResponse('if my salary is 250000 how should i spend it');
+      expect(response, contains('₹2,50,000 monthly family salary'));
+      expect(response, contains('**Fixed Expenses**: 45% (₹1,12,500)'));
+      expect(response, contains('**Savings**: 35% (₹87,500)'));
+      expect(response, contains('**Discretionary**: 20% (₹50,000)'));
+      expect(response, contains('₹15,000/mo'));
+    });
+
     test('Declines unrelated programming query', () async {
       final response = await GeminiService.instance.sendLocalResponse('Write a python function to print hello world');
       expect(response, equals("I’m the FamFunds financial assistant, so I can only help with personal finance, budgeting, savings, investments, and related topics. Please ask me a finance-related question."));

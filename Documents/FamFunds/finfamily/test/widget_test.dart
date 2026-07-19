@@ -16,5 +16,8 @@ void main() {
 
     // Verify that the splash screen shows 'FinFamily'
     expect(find.text('FinFamily'), findsOneWidget);
+
+    // Consume the splash screen transition timer to prevent pending timer error
+    await tester.pump(const Duration(milliseconds: 900));
   });
 }

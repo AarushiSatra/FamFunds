@@ -130,6 +130,25 @@ Do NOT answer unrelated questions under any circumstances. Do not ask the user f
     throw lastError ?? StateError('All candidate models failed to initialize.');
   }
 
+  String _formatRupees(double amount) {
+    final intVal = amount.round();
+    final str = intVal.toString();
+    if (str.length <= 3) return str;
+    
+    var result = '';
+    var count = 0;
+    for (var i = str.length - 1; i >= 0; i--) {
+      if (count == 3) {
+        result = ',$result';
+      } else if (count > 3 && (count - 3) % 2 == 0) {
+        result = ',$result';
+      }
+      result = str[i] + result;
+      count++;
+    }
+    return result;
+  }
+
   /// Local simulated financial assistant responses for offline/no-key usage.
   Future<String> sendLocalResponse(String text) async {
     // Artificial delay to simulate thinking (makes it feel premium!)
@@ -176,11 +195,47 @@ Do NOT answer unrelated questions under any circumstances. Do not ask the user f
     }
 
     if (query.contains('rate') || query.contains('saving') || query.contains('salary') || query.contains('budget') || query.contains('breakdown') || query.contains('expense') || query.contains('spend') || query.contains('cost') || query.contains('income')) {
-      return "Of your **₹85,000 monthly family salary**, here is the breakdown:\n\n"
-          "- **Fixed Expenses**: 45% (₹38,250) - Covers rent, bills, and EMIs.\n"
-          "- **Savings**: 35% (₹29,750) - Directed to your linked bank accounts.\n"
-          "- **Discretionary**: 20% (₹17,000) - Fun budget.\n\n"
-          "Your **35% savings rate** is excellent! We recommend setting up an automatic transfer of **₹5,000/mo** to your mutual fund SIP.";
+      double? customSalary;
+      final regExp = RegExp(r'\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k|lakh|lakhs|lac|lacs)?\b');
+      final match = regExp.firstMatch(query);
+      if (match != null) {
+        final numStr = match.group(1)!.replaceAll(',', '');
+        final suffix = match.group(2)?.toLowerCase();
+        double? val = double.tryParse(numStr);
+        if (val != null) {
+          if (suffix == 'k') {
+            val *= 1000;
+          } else if (suffix != null && (suffix.startsWith('lakh') || suffix.startsWith('lac'))) {
+            val *= 100000;
+          }
+          if (val >= 1000) {
+            customSalary = val;
+          }
+        }
+      }
+
+      final salary = customSalary ?? 85000.0;
+      final fixedExpenses = salary * 0.45;
+      final savings = salary * 0.35;
+      final discretionary = salary * 0.20;
+
+      final salaryStr = _formatRupees(salary);
+      final fixedStr = _formatRupees(fixedExpenses);
+      final savingsStr = _formatRupees(savings);
+      final discretionaryStr = _formatRupees(discretionary);
+
+      double sipRecommend = 5000;
+      if (customSalary != null) {
+        sipRecommend = (customSalary * 0.06 / 1000).round() * 1000.0;
+        if (sipRecommend < 1000) sipRecommend = 1000;
+      }
+      final sipRecommendStr = _formatRupees(sipRecommend);
+
+      return "Of your **₹$salaryStr monthly family salary**, here is the breakdown:\n\n"
+          "- **Fixed Expenses**: 45% (₹$fixedStr) - Covers rent, bills, and EMIs.\n"
+          "- **Savings**: 35% (₹$savingsStr) - Directed to your linked bank accounts.\n"
+          "- **Discretionary**: 20% (₹$discretionaryStr) - Fun budget.\n\n"
+          "Your **35% savings rate** is excellent! We recommend setting up an automatic transfer of **₹$sipRecommendStr/mo** to your mutual fund SIP.";
     }
 
     if (query.contains('balance') || query.contains('total') || query.contains('money') || query.contains('account') || query.contains('linked') || query.contains('bank')) {
