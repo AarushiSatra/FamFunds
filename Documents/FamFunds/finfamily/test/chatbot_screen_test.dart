@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finfamily/screens/chatbot_screen.dart';
 import 'package:finfamily/theme/app_theme.dart';
+import 'package:finfamily/constants/famfunds_ai_prompt.dart';
 
 void main() {
   testWidgets('Chatbot Screen initial state rendering', (WidgetTester tester) async {
@@ -36,11 +37,9 @@ void main() {
     // Pump timer for simulated typing response (800ms)
     await tester.pump(const Duration(milliseconds: 900));
 
-    // Verify the exact refusal message
+    // Verify the exact refusal message constant
     expect(
-      find.text(
-        'I’m the FamFunds financial assistant, so I can only help with personal finance, budgeting, savings, investments, and related topics. Please ask me a finance-related question.',
-      ),
+      find.text(famFundsAIOutOfScopeResponse),
       findsOneWidget,
     );
   });
@@ -61,8 +60,61 @@ void main() {
     // Pump timer (800ms)
     await tester.pump(const Duration(milliseconds: 900));
 
-    // Verify the text explanation and the presence of BudgetCalculatorWidget
-    expect(find.textContaining('Budgeting is the roadmap of your personal finances'), findsOneWidget);
+    // Verify the process text explanation and the presence of BudgetCalculatorWidget
+    expect(find.textContaining('how to create a budget step-by-step'), findsOneWidget);
     expect(find.byType(BudgetCalculatorWidget), findsOneWidget);
+  });
+
+  testWidgets('Chatbot updates user salary profile and personalizes budget recommendation', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const ChatbotScreen(),
+      ),
+    );
+
+    // Provide salary input
+    await tester.enterText(find.byType(TextField).first, 'My salary is ₹2,50,000.');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pump();
+
+    // Pump timer (800ms)
+    await tester.pump(const Duration(milliseconds: 900));
+
+    // Verify personalized breakdown includes ₹2,50,000 and 50% (₹1,25,000)
+    expect(find.textContaining('₹2,50,000'), findsWidgets);
+    expect(find.textContaining('₹125,000'), findsWidgets);
+  });
+
+  testWidgets('Chatbot handles definition intent question correctly', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const ChatbotScreen(),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'What is a mutual fund?');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('investment vehicle that pools money', skipOffstage: false), findsOneWidget);
+  });
+
+  testWidgets('Chatbot handles process intent question correctly', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const ChatbotScreen(),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'How do SIPs work?');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Systematic Investment Plan', skipOffstage: false), findsWidgets);
   });
 }

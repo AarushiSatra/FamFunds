@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
+import '../services/chatbot_service.dart';
+import '../constants/famfunds_ai_prompt.dart';
 
 /// Models a local chat entry in the screen session
 class ChatEntry {
@@ -31,6 +33,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final List<ChatEntry> _messages = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ChatbotService _chatbotService = ChatbotService();
+  final UserFinancialProfile _financialProfile = UserFinancialProfile();
   bool _isTyping = false;
 
   final List<String> _suggestions = [
@@ -50,7 +54,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     _messages.add(
       ChatEntry(
         text: 'Hello! I am FamFunds AI, your personal finance assistant. 🤝\n\n'
-            'I can help you with budgeting, savings, expense tracking, investments, insurance, taxes, banking, or test your finance knowledge with a quick quiz!\n\n'
+            'I can help you with budgeting, savings, expense tracking, investments, insurance, taxes, banking, loans, or test your finance knowledge with a quick quiz!\n\n'
             'What would you like to explore today?',
         isUser: false,
         timestamp: DateTime.now(),
@@ -91,143 +95,37 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     });
     _scrollToBottom();
 
-    // Simulate typing delay for premium organic feel
-    Timer(const Duration(milliseconds: 800), () {
+    // Process with ChatbotService
+    Timer(const Duration(milliseconds: 800), () async {
       if (!mounted) return;
-      final response = _generateLocalResponse(text);
+      final response = await _chatbotService.processMessage(text, _financialProfile);
+
+      Widget? customWidget;
+      if (response.widgetType == 'budget') {
+        customWidget = const BudgetCalculatorWidget();
+      } else if (response.widgetType == 'savings') {
+        customWidget = const SavingsGoalWidget();
+      } else if (response.widgetType == 'tax') {
+        customWidget = const TaxEstimatorWidget();
+      } else if (response.widgetType == 'accounts') {
+        customWidget = const FamilyAccountsViewer();
+      } else if (response.widgetType == 'insurance') {
+        customWidget = const InsuranceGuideWidget();
+      } else if (response.widgetType == 'quiz') {
+        customWidget = const FinanceQuizWidget();
+      }
+
       setState(() {
         _isTyping = false;
-        _messages.add(response);
+        _messages.add(ChatEntry(
+          text: response.text,
+          isUser: false,
+          timestamp: DateTime.now(),
+          customWidget: customWidget,
+        ));
       });
       _scrollToBottom();
     });
-  }
-
-  ChatEntry _generateLocalResponse(String userQuery) {
-    final query = userQuery.toLowerCase().trim();
-
-    // Check if greeting or standard conversational pleasantry
-    final greetingRx = RegExp(
-        r'\b(hi|hello|hey|greetings|good morning|good afternoon|good evening|who are you|what can you do|help)\b');
-    final thankRx = RegExp(r'\b(thanks|thank you|awesome|great|cool|bye|goodbye)\b');
-
-    // Categorization keywords
-    final budgetRx = RegExp(
-        r'\b(budget|budgeting|allocate|needs|wants|50/30/20|fifty thirty twenty|how to budget|plan expenses|expense rule)\b');
-    final savingsRx = RegExp(
-        r'\b(sav(e|ing|ings)|emergency fund|emergency savings|reserve cash|rainy day|how to save)\b');
-    final expenseRx = RegExp(
-        r'\b(expense(s)?|spent|spending|track(ing)?|transaction(s)?|log|record|outflow|where is my money)\b');
-    final planningRx = RegExp(
-        r'\b(plan(ning)?|retire(ment)?|goal(s)?|future|long term|financial freedom|wealth creation|compound(ing)?)\b');
-    final investRx = RegExp(
-        r'\b(invest(ment|ing|s)?|stock(s)?|mutual fund(s)?|equity|bond(s)?|fixed deposit|fd|sip|groww|portfolio|asset(s)?)\b');
-    final insuranceRx = RegExp(
-        r'\b(insur(ance|e)?|policy|term plan|health cover|medical insurance|life cover|premium|claim)\b');
-    final taxRx = RegExp(r'\b(tax(es)?|itr|bracket|slab|80c|deduction(s)?|income tax|rebate)\b');
-    final bankRx = RegExp(
-        r'\b(bank(ing)?|account(s)?|balance|interest|fd|rd|deposit|loan(s)?|credit card|debit|overdraft)\b');
-    final quizRx = RegExp(
-        r'\b(quiz|learn|test|literacy|education|rule of 72|inflation|compound interest|knowledge)\b');
-
-    // Match intents
-    if (greetingRx.hasMatch(query)) {
-      return ChatEntry(
-        text: 'Welcome back! How can I help you manage your family finances today?\n\n'
-            'Feel free to ask me questions or tap one of the tools below to calculate a budget, estimate savings, estimate taxes, check accounts, or take the literacy quiz.',
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
-    } else if (thankRx.hasMatch(query)) {
-      return ChatEntry(
-        text: 'You\'re welcome! I am always here to support your family\'s financial journey. Let me know if you need anything else.',
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
-    } else if (budgetRx.hasMatch(query) || query.contains('calculate budget')) {
-      return ChatEntry(
-        text: 'Budgeting is the roadmap of your personal finances! A popular strategy is the **50/30/20 Rule**:\n\n'
-            '• **50% Needs**: rent, utilities, groceries, loans.\n'
-            '• **30% Wants**: dining out, shopping, hobbies.\n'
-            '• **20% Savings**: emergency fund, mutual funds, investments.\n\n'
-            'Here is an interactive calculator to try with your own monthly income:',
-        isUser: false,
-        timestamp: DateTime.now(),
-        customWidget: const BudgetCalculatorWidget(),
-      );
-    } else if (savingsRx.hasMatch(query) || query.contains('savings calculator')) {
-      return ChatEntry(
-        text: 'Saving money is all about intention and consistency! Experts suggest building an **Emergency Fund** of at least 6 months of fixed expenses before investing aggressively.\n\n'
-            'Use the goal estimator below to see how much you need to set aside monthly for your savings target:',
-        isUser: false,
-        timestamp: DateTime.now(),
-        customWidget: const SavingsGoalWidget(),
-      );
-    } else if (expenseRx.hasMatch(query)) {
-      return ChatEntry(
-        text: 'Tracking expenses reveals where your money goes. Here are three simple habits to start today:\n\n'
-            '1. Categorize all outflows immediately (Needs vs. Wants).\n'
-            '2. Conduct a monthly family review of subscriptions.\n'
-            '3. Set balance alerts to prevent overspending.\n\n'
-            'You can view your detailed historical family outlays on the **Salary Breakdown** page under the Quick Actions on your Dashboard.',
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
-    } else if (planningRx.hasMatch(query)) {
-      return ChatEntry(
-        text: 'Successful financial planning focuses on the power of compounding. Setting long-term goals (e.g. retirement, education) early transforms small monthly savings into massive corpuses over 10-20 years.\n\n'
-            'Try our interactive Quiz or Savings goal tools to test your planning knowledge and set goals!',
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
-    } else if (investRx.hasMatch(query) || query.contains('investment guide')) {
-      return ChatEntry(
-        text: 'Investing allows your money to fight inflation and grow over time. Always matches your investments to your risk appetite:\n\n'
-            '• **Low Risk**: Fixed Deposits, Debt Mutual Funds, PPF (ideal for short-term goals < 3 years).\n'
-            '• **Moderate Risk**: Balanced Hybrid Funds, Index Funds.\n'
-            '• **High Risk**: Direct Equity Shares, Sectoral Mutual Funds, Small Cap Funds (ideal for long-term goals > 7 years).\n\n'
-            '⚠️ *Note: This is educational information only, not formal investment advice. You can explore mutual fund categories on the **Invest** tab.*',
-        isUser: false,
-        timestamp: DateTime.now(),
-      );
-    } else if (insuranceRx.hasMatch(query) || query.contains('insurance guide')) {
-      return ChatEntry(
-        text: 'Insurance is the protective shield of your financial house. Before investing, ensure you have basic protection to guard against life\'s uncertainties.\n\n'
-            'Check out our breakdown of key insurance types below:',
-        isUser: false,
-        timestamp: DateTime.now(),
-        customWidget: const InsuranceGuideWidget(),
-      );
-    } else if (taxRx.hasMatch(query) || query.contains('tax estimator')) {
-      return ChatEntry(
-        text: 'Under Indian Tax laws, planning deductions early helps maximize net take-home salary. Popular deductions include Section 80C (PPF, ELSS, EPF up to ₹1.5L) and Section 80D (Health Insurance premiums).\n\n'
-            'Here is a quick calculator for the **New Tax Regime (FY 2025-26)** slabs to estimate your liability:',
-        isUser: false,
-        timestamp: DateTime.now(),
-        customWidget: const TaxEstimatorWidget(),
-      );
-    } else if (bankRx.hasMatch(query) || query.contains('combined balance')) {
-      return ChatEntry(
-        text: 'Here is your family\'s combined bank account snapshot retrieved from linked accounts:',
-        isUser: false,
-        timestamp: DateTime.now(),
-        customWidget: const FamilyAccountsViewer(),
-      );
-    } else if (quizRx.hasMatch(query) || query.contains('take finance quiz')) {
-      return ChatEntry(
-        text: 'Testing your financial literacy is a great way to build healthy money habits! Have a go at this finance challenge:',
-        isUser: false,
-        timestamp: DateTime.now(),
-        customWidget: const FinanceQuizWidget(),
-      );
-    }
-
-    // Unrelated fallback
-    return ChatEntry(
-      text: 'I’m the FamFunds financial assistant, so I can only help with personal finance, budgeting, savings, investments, and related topics. Please ask me a finance-related question.',
-      isUser: false,
-      timestamp: DateTime.now(),
-    );
   }
 
   @override
