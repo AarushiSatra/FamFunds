@@ -14,6 +14,8 @@ import '../screens/account_linking/consent_intro_screen.dart';
 import '../screens/account_linking/otp_verification_screen.dart';
 import '../screens/account_linking/select_accounts_screen.dart';
 import '../screens/account_linking/consent_success_screen.dart';
+import '../screens/edit_profile_screen.dart';
+import '../screens/change_password_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -26,6 +28,8 @@ class AppRoutes {
   static const investments = '/investments';
   static const chatbot = '/chatbot';
   static const profile = '/profile';
+  static const editProfile = '/profile/edit';
+static const changePassword = '/profile/change-password';
 
   // Account linking (consent) flow
   static const consentIntro = '/link/consent-intro';
@@ -44,6 +48,8 @@ class AppRoutes {
         investments: (_) => const InvestmentScreen(),
         chatbot: (_) => const ChatbotScreen(),
         profile: (_) => const ProfileScreen(),
+        editProfile: (_) => const EditProfileScreen(),
+        changePassword: (_) => const ChangePasswordScreen(),
         consentIntro: (_) => const ConsentIntroScreen(),
         otpVerification: (_) => const OtpVerificationScreen(),
         selectAccounts: (_) => const SelectAccountsScreen(),

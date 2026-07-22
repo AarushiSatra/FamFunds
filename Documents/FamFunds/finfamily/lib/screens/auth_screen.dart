@@ -19,20 +19,39 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  final _usernameController = TextEditingController();
+  final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isSignUp = false;
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String? _error;
 
   Future<void> _handleContinue() async {
+    final username = _usernameController.text.trim();
+    final fullName = _fullNameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Enter your email and password');
-      return;
+    if (_isSignUp) {
+      if (username.isEmpty || fullName.isEmpty || email.isEmpty || password.isEmpty) {
+        setState(() => _error = 'Fill in all fields');
+        return;
+      }
+      if (password != confirmPassword) {
+        setState(() => _error = 'Passwords do not match');
+        return;
+      }
+    } else {
+      if (email.isEmpty || password.isEmpty) {
+        setState(() => _error = 'Enter your email and password');
+        return;
+      }
     }
 
     setState(() {
@@ -42,10 +61,13 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (_isSignUp) {
-        await AuthService.instance.signUp(email: email, password: password);
+        await AuthService.instance.signUp(
+          email: email,
+          password: password,
+          username: username,
+          fullName: fullName,
+        );
         if (!mounted) return;
-        // New accounts must verify email, then enroll a second factor,
-        // before reaching /home.
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
         );
@@ -55,7 +77,6 @@ class _AuthScreenState extends State<AuthScreen> {
         await _routeAfterSuccessfulSignIn();
       }
     } on FirebaseAuthMultiFactorException catch (e) {
-      // Expected on sign-in for accounts that already completed 2FA setup.
       if (!mounted) return;
       setState(() => _isLoading = false);
       Navigator.of(context).pushReplacement(
@@ -75,10 +96,6 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  /// Reaching here means sign-in succeeded WITHOUT a second-factor
-  /// challenge — which means this account hasn't finished 2FA setup yet
-  /// (no second factor enrolled). Send them to whichever step is left
-  /// instead of letting them into /home half set up.
   Future<void> _routeAfterSuccessfulSignIn() async {
     final user = AuthService.instance.currentUser;
     if (user != null && !user.emailVerified) {
@@ -87,8 +104,6 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       return;
     }
-    // Email verified but no MFA exception was thrown -> no second factor
-    // enrolled yet. Send them to finish setup.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MfaEnrollScreen()),
     );
@@ -112,57 +127,100 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  void _switchMode(bool signUp) {
+    if (_isSignUp == signUp) return;
+    setState(() {
+      _isSignUp = signUp;
+      _error = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isSignUp ? 'Create account' : 'Sign in')),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: AppSpacing.sm),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: AppSpacing.xl),
+              Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.25),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.family_restroom_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
               Text(
-                _error!,
-                style: const TextStyle(color: AppColors.accentRed, fontSize: 13),
+                'FinFamily',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            FFPrimaryButton(
-              label: _isSignUp ? 'Create account' : 'Continue',
-              isLoading: _isLoading,
-              onPressed: _handleContinue,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextButton(
-              onPressed: _isLoading
-                  ? null
-                  : () => setState(() {
-                        _isSignUp = !_isSignUp;
-                        _error = null;
-                      }),
-              child: Text(
+              const SizedBox(height: AppSpacing.xs),
+              Text(
                 _isSignUp
-                    ? 'Already have an account? Sign in'
-                    : 'New here? Create an account',
+                    ? 'Create an account for your family'
+                    : 'One app for your whole family\'s money',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+              const SizedBox(height: AppSpacing.xl),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _SegmentButton(
+                      label: 'Sign in',
+                      selected: !_isSignUp,
+                      onTap: _isLoading ? null : () => _switchMode(false),
+                    )),
+                    Expanded(child: _SegmentButton(
+                      label: 'Sign up',
+                      selected: _isSignUp,
+                      onTap: _isLoading ? null : () => _switchMode(true),
+                    )),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              FFCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_isSignUp) ...[
+                        TextField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
