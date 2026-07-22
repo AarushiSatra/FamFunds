@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Wraps FirebaseAuth for FinFamily's sign-in flow:
@@ -13,20 +14,40 @@ class AuthService {
   static final AuthService instance = AuthService._();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // ---- Primary factor: email / password ----
 
+  /// Creates the Firebase Auth account, then saves the extra profile
+  /// fields (username, fullName) to Firestore — Firebase Auth itself
+  /// has no field for these, so they live in a `users/{uid}` document.
   Future<UserCredential> signUp({
     required String email,
     required String password,
-  }) {
-    return _auth.createUserWithEmailAndPassword(
+    required String username,
+    required String fullName,
+  }) async {
+    final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+
+    final uid = credential.user!.uid;
+    await _firestore.collection('users').doc(uid).set({
+      'username': username,
+      'fullName': fullName,
+      'email': email,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // Also set the Firebase Auth display name, so it's available via
+    // currentUser?.displayName without an extra Firestore read.
+    await credential.user!.updateDisplayName(fullName);
+
+    return credential;
   }
 
   /// Signs in with email/password. If the account has a second factor
